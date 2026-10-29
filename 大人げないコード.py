@@ -32,7 +32,7 @@ BASE_SPEED = 50    # 直進の速さ (0 ~ 100)
 MAX_SPEED = 100
 KP = 40            # 曲がる強さ
 KD = 100           # 蛇行をおさえる
-EDGE = -1          # -1: ラインの右端 / 1: 左端
+EDGE = 1          # -1: ラインの右端 / 1: 左端
 TARGET = 0.5
 
 STRAIGHT_TEST = False  # True にするとラインを見ずにまっすぐ走る（左右の力合わせ用）
