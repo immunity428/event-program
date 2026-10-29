@@ -1,0 +1,436 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ライントレース つまみ図鑑</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* Layout: コースマット — シミュレーターが主役。下に3つのつまみを1つずつ、色で見分ける */
+:root{
+  --bg:#EDF1F3; --surface:#FFFFFF; --surface-2:#F5F7F8; --ink:#15191D; --muted:#56616B; --rule:#D2D9DE;
+  --speed:#C2410C; --turn:#0B7285; --hosei:#9333B0;
+  --speed-soft:#FFEADB; --turn-soft:#D7F1F4; --hosei-soft:#F4E2FA;
+  --warn:#B42318; --warn-soft:#FDE4E1; --ok:#2B8A3E; --ok-soft:#DDF5E2;
+  --led-bg:#0E1216; --led-on:#7CFFB2; --led-dim:#3E5A4B;
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-led:"DotGothic16",ui-monospace,"Menlo",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101417; --surface:#181D21; --surface-2:#1F252A; --ink:#E8ECEF; --muted:#9BA7B1; --rule:#2B333A;
+  --speed:#FF8A4C; --turn:#45C6D6; --hosei:#D98BF0;
+  --speed-soft:#3A2416; --turn-soft:#10343A; --hosei-soft:#35193F;
+  --warn:#FF8A80; --warn-soft:#3D1A17; --ok:#69DB7C; --ok-soft:#173322;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101417; --surface:#181D21; --surface-2:#1F252A; --ink:#E8ECEF; --muted:#9BA7B1; --rule:#2B333A;
+  --speed:#FF8A4C; --turn:#45C6D6; --hosei:#D98BF0;
+  --speed-soft:#3A2416; --turn-soft:#10343A; --hosei-soft:#35193F;
+  --warn:#FF8A80; --warn-soft:#3D1A17; --ok:#69DB7C; --ok-soft:#173322;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.8;font-weight:500}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:44px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;line-height:1.35}
+h1{font-size:clamp(28px,5.4vw,46px)}
+h2{font-size:clamp(24px,4vw,32px)}
+h3{font-size:19px}
+p{margin:0}
+ruby rt{font-size:.5em;font-family:var(--f-body)}
+.eyebrow{font-size:13px;letter-spacing:.08em;color:var(--muted)}
+.lead{max-width:40em;color:var(--muted)}
+header{display:grid;gap:12px}
+
+/* ---------- simulator ---------- */
+.sim{background:var(--surface);border:1px solid var(--rule);border-radius:18px;padding:14px;display:grid;gap:14px}
+.mat{position:relative;border-radius:12px;overflow:hidden;background:#FAFAF7;aspect-ratio:16/9;max-width:100%}
+.mat canvas{display:block;width:100%;height:100%}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:700;font-size:15px;border-radius:999px;padding:8px 16px;border:1.5px solid var(--ink);background:var(--ink);color:var(--surface);cursor:pointer;min-height:42px}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:focus-visible,.seg button:focus-visible,input[type=range]:focus-visible{outline:3px solid var(--turn);outline-offset:2px}
+.seg{display:inline-flex;border:1.5px solid var(--rule);border-radius:999px;padding:3px;margin-left:auto;background:var(--surface-2)}
+.seg button{font:inherit;font-size:14px;font-weight:700;border:0;background:transparent;color:var(--muted);border-radius:999px;padding:6px 14px;cursor:pointer;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.status{border-radius:10px;padding:10px 14px;background:var(--surface-2);font-weight:700;min-height:48px;display:flex;align-items:center;gap:10px}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+
+.knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.knob{border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.knob.speed{background:var(--speed-soft)} .knob.turn{background:var(--turn-soft)} .knob.hosei{background:var(--hosei-soft)}
+.knob-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.knob-name{font-family:var(--f-display);font-size:20px}
+.knob.speed .knob-name{color:var(--speed)} .knob.turn .knob-name{color:var(--turn)} .knob.hosei .knob-name{color:var(--hosei)}
+.knob-val{font-family:var(--f-led);font-size:28px;font-variant-numeric:tabular-nums;line-height:1}
+.knob-hint{font-size:13px;color:var(--muted);line-height:1.5}
+.knob input{width:100%}
+.knob.speed input{accent-color:var(--speed)} .knob.turn input{accent-color:var(--turn)} .knob.hosei input{accent-color:var(--hosei)}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+.led{background:var(--led-bg);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.led div{display:grid;gap:2px}
+.led span{font-size:12px;color:#9FB3A7;font-family:var(--f-body)}
+.led b{font-family:var(--f-led);font-weight:400;font-size:24px;color:var(--led-on);font-variant-numeric:tabular-nums;line-height:1.2}
+.led b.dim{color:var(--led-dim)}
+
+/* ---------- knob sections ---------- */
+.part{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:28px;align-items:start;padding-top:28px;border-top:2px solid var(--rule)}
+@media (max-width:720px){.part{grid-template-columns:1fr;gap:16px}}
+.badge{border-radius:16px;padding:18px;display:grid;gap:6px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:720px){.badge{position:static}}
+.badge.speed{background:var(--speed-soft);color:var(--speed)}
+.badge.turn{background:var(--turn-soft);color:var(--turn)}
+.badge.hosei{background:var(--hosei-soft);color:var(--hosei)}
+.badge .big{font-family:var(--f-display);font-size:40px;line-height:1.1}
+.badge .yomi{font-size:15px;font-weight:700}
+.badge .now{font-family:var(--f-led);font-size:15px;color:var(--ink);opacity:.8}
+.body{display:grid;gap:18px;min-width:0}
+.oneline{font-family:var(--f-display);font-size:clamp(22px,3.6vw,28px);line-height:1.4}
+.analogy{border:2px dashed var(--rule);border-radius:14px;padding:14px 16px;display:grid;gap:4px}
+.analogy .tag{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.05em}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.two > div{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:12px 14px;display:grid;gap:4px;min-width:0}
+.two .dir{font-weight:700;font-size:15px}
+.two ul{margin:0;padding-left:1.2em}
+.range-note{font-size:15px;color:var(--muted)}
+.range-note b{font-family:var(--f-led);font-weight:400;color:var(--ink);font-size:17px}
+.promise{border-radius:12px;padding:12px 16px;background:var(--warn-soft);color:var(--warn);font-weight:700}
+.steps{margin:0;padding-left:1.4em;display:grid;gap:6px}
+.steps li::marker{font-family:var(--f-led);color:var(--hosei)}
+
+/* ---------- trouble table ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:13px;color:var(--muted);letter-spacing:.05em;background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-weight:700;border-radius:999px;padding:1px 10px;font-size:14px}
+.chip.speed{background:var(--speed-soft);color:var(--speed)}
+.chip.turn{background:var(--turn-soft);color:var(--turn)}
+.chip.hosei{background:var(--hosei-soft);color:var(--hosei)}
+.chip.none{background:var(--surface-2);color:var(--muted)}
+
+/* ---------- missions ---------- */
+.missions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mission{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:16px;display:grid;gap:6px;align-content:start}
+.mission .lv{font-family:var(--f-led);font-size:14px;color:var(--muted)}
+.mission .ttl{font-family:var(--f-display);font-size:20px}
+
+/* ---------- teacher ---------- */
+details{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:4px 16px}
+summary{cursor:pointer;font-weight:700;padding:10px 0}
+.teacher{display:grid;gap:12px;padding-bottom:14px;font-size:15px}
+pre{margin:0;background:var(--surface-2);border-radius:10px;padding:12px 14px;overflow-x:auto;font-family:ui-monospace,"Menlo",monospace;font-size:13.5px;line-height:1.7}
+section > h2{margin-bottom:14px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">ATOM Matrix ・ サーボ ・ カラーセンサー の ライントレース</p>
+  <h1>3つの つまみで<br>ロボットを そだてよう</h1>
+  <p class="lead">speed ・ turn ・ hosei の 数字を かえると、ロボットの はしりかたが かわるよ。下の シミュレーターで つまみを うごかして、ためしてみよう。</p>
+</header>
+
+<section class="sim" aria-label="ライントレースのシミュレーター">
+  <div class="mat"><canvas id="cv" role="img" aria-label="くろい せんの うえを ロボットが はしる シミュレーター"></canvas></div>
+
+  <div class="toolbar">
+    <button class="btn" id="play" type="button" aria-pressed="true">ストップ</button>
+    <button class="btn ghost" id="reset" type="button">はじめから</button>
+    <div class="seg" role="group" aria-label="モード">
+      <button type="button" id="m-course" aria-pressed="true">コース</button>
+      <button type="button" id="m-straight" aria-pressed="false">まっすぐテスト</button>
+    </div>
+  </div>
+
+  <div class="status" id="status" role="status" aria-live="polite">はしってるよ</div>
+
+  <div class="knobs">
+    <div class="knob speed">
+      <div class="knob-top"><label class="knob-name" for="speed">speed</label><span class="knob-val" id="speed-v">400</span></div>
+      <input type="range" id="speed" min="150" max="500" step="25" value="400">
+      <div class="ends"><span>おそい</span><span>はやい</span></div>
+      <p class="knob-hint">そとがわの タイヤの はやさ</p>
+    </div>
+    <div class="knob turn">
+      <div class="knob-top"><label class="knob-name" for="turn">turn</label><span class="knob-val" id="turn-v">100</span></div>
+      <input type="range" id="turn" min="0" max="500" step="25" value="100">
+      <div class="ends"><span>するどく まがる</span><span>ゆるく まがる</span></div>
+      <p class="knob-hint">うちがわの タイヤの はやさ</p>
+    </div>
+    <div class="knob hosei">
+      <div class="knob-top"><label class="knob-name" for="hosei">hosei</label><span class="knob-val" id="hosei-v">75</span></div>
+      <input type="range" id="hosei" min="50" max="120" step="5" value="75">
+      <div class="ends"><span>ひだりを よわく</span><span>ひだりを つよく</span></div>
+      <p class="knob-hint">ひだりの サーボの ちからかげん（%）</p>
+    </div>
+  </div>
+
+  <div class="led" aria-label="サーボに おくる 数字">
+    <div><span>lf ひだり・はやい</span><b id="o-lf">1800</b></div>
+    <div><span>ls ひだり・おそい</span><b id="o-ls">1575</b></div>
+    <div><span>rf みぎ・はやい</span><b id="o-rf">1100</b></div>
+    <div><span>rs みぎ・おそい</span><b id="o-rs">1400</b></div>
+  </div>
+</section>
+
+<section class="part" id="speed-sec" aria-labelledby="h-speed">
+  <div class="badge speed">
+    <span class="big" id="h-speed">speed</span>
+    <span class="yomi">スピード</span>
+    <span class="now">いま：<span id="now-speed">400</span></span>
+  </div>
+  <div class="body">
+    <p class="oneline">そとがわの タイヤの はやさ</p>
+    <p>ロボットは まがるとき、そとがわの タイヤを はやく、うちがわの タイヤを ゆっくり まわすよ。speed は「はやく まわす ほう」の タイヤの はやさ だよ。</p>
+    <div class="analogy">
+      <span class="tag">たとえるなら</span>
+      <p>じてんしゃを こぐ はやさ。はやく こぐと すぐ つくけど、まがりかどで まがりきれなくなるよね。</p>
+    </div>
+    <div class="two">
+      <div><span class="dir">大きく すると ↑</span><ul><li>ロボットが はやくなる</li><li>カーブで コースアウト しやすい</li></ul></div>
+      <div><span class="dir">小さく すると ↓</span><ul><li>ゆっくり あんぜんに はしる</li><li>タイムは おそくなる</li></ul></div>
+    </div>
+    <p class="range-note">めやす：<b>200</b> 〜 <b>500</b>　25ずつ かえて ためそう</p>
+  </div>
+</section>
+
+<section class="part" id="turn-sec" aria-labelledby="h-turn">
+  <div class="badge turn">
+    <span class="big" id="h-turn">turn</span>
+    <span class="yomi">ターン</span>
+    <span class="now">いま：<span id="now-turn">100</span></span>
+  </div>
+  <div class="body">
+    <p class="oneline">うちがわの タイヤの はやさ</p>
+    <p>まがる ほうの タイヤの はやさ だよ。小さく するほど うちがわの タイヤに ブレーキが かかって、くるっと まがれるよ。</p>
+    <div class="analogy">
+      <span class="tag">たとえるなら</span>
+      <p>まがるときに かける ブレーキ。つよく かけるほど（turn を 小さく するほど）するどく まがれる。</p>
+    </div>
+    <div class="two">
+      <div><span class="dir">小さく すると ↓</span><ul><li>きゅうカーブも まがれる</li><li>ジグザグが はげしくなる</li></ul></div>
+      <div><span class="dir">大きく すると ↑</span><ul><li>なめらかに はしる</li><li>カーブで そとに ふくらむ</li></ul></div>
+    </div>
+    <p class="range-note">めやす：<b>0</b> 〜 <b>200</b></p>
+    <p class="promise">やくそく：turn は speed より かならず 小さく！ おなじだと まがらない。大きいと はんたいに まがっちゃう。</p>
+  </div>
+</section>
+
+<section class="part" id="hosei-sec" aria-labelledby="h-hosei">
+  <div class="badge hosei">
+    <span class="big" id="h-hosei">hosei</span>
+    <span class="yomi"><ruby>補正<rt>ほせい</rt></ruby></span>
+    <span class="now">いま：<span id="now-hosei">75</span>%</span>
+  </div>
+  <div class="body">
+    <p class="oneline">ひだりの サーボの ちからかげん</p>
+    <p>サーボには 1こずつ「くせ」が あって、おなじ 数字を おくっても ちからが ちがうんだ。hosei は、ひだりの サーボを 何パーセントの ちからで まわすかを きめる 数字だよ。100 なら そのまま、75 なら 4ぶんの3 の ちから。</p>
+    <div class="analogy">
+      <span class="tag">たとえるなら</span>
+      <p>二人三脚。あしの はやい 子が すこし ゆっくり あるくと、ふたりで まっすぐ すすめるよね。</p>
+    </div>
+    <div class="two">
+      <div><span class="dir">みぎ（とけいまわり）に まがる</span><p>ひだりが つよすぎ。hosei を <b>5 さげる</b></p></div>
+      <div><span class="dir">ひだり（はんとけいまわり）に まがる</span><p>ひだりが よわすぎ。hosei を <b>5 あげる</b></p></div>
+    </div>
+    <div class="analogy">
+      <span class="tag">しらべかた</span>
+      <ol class="steps">
+        <li>turn を speed と おなじ 数字に する（まがらなく なる）</li>
+        <li>ロボットを はしらせて、どっちに まがるか みる</li>
+        <li>まがった ほうに あわせて hosei を 5 ずつ かえる</li>
+        <li>まっすぐ はしったら、turn を もとの 数字に もどす</li>
+      </ol>
+      <p class="knob-hint">シミュレーターの「まっすぐテスト」でも れんしゅう できるよ。ほんものの ロボットは 1だいずつ くせが ちがうから、じぶんの ロボットで しらべよう。</p>
+    </div>
+    <p class="range-note">めやす：<b>50</b> 〜 <b>120</b></p>
+  </div>
+</section>
+
+<section aria-labelledby="h-trouble">
+  <h2 id="h-trouble">こまったときは</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>どうなった？</th><th>どの つまみ？</th><th>どうする？</th></tr></thead>
+      <tbody>
+        <tr><td>カーブで とびだす</td><td><span class="chip speed">speed</span></td><td>25 さげる。それでも だめなら turn を 25 さげる</td></tr>
+        <tr><td>ジグザグが はげしい</td><td><span class="chip turn">turn</span></td><td>25 あげる（speed より 小さい まま）</td></tr>
+        <tr><td>まっすぐな ところで かたよる</td><td><span class="chip hosei">hosei</span></td><td>まっすぐテストで 5 ずつ あわせる</td></tr>
+        <tr><td>その場で くるくる まわる</td><td><span class="chip turn">turn</span></td><td>speed と おなじか 大きく なってないか みる</td></tr>
+        <tr><td>くろでも しろでも おなじ うごき</td><td><span class="chip none">つまみ じゃないよ</span></td><td>しろい ところに おいて ボタンを おしなおす</td></tr>
+        <tr><td>うしろに すすむ</td><td><span class="chip none">つまみ じゃないよ</span></td><td>せんせいを よぼう</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="h-mission">
+  <h2 id="h-mission">ミッション</h2>
+  <div class="missions">
+    <div class="mission"><span class="lv">LEVEL 1</span><span class="ttl">はじめの 1しゅう</span><p>speed 300、turn 100 で コースを 1しゅう しよう。</p></div>
+    <div class="mission"><span class="lv">LEVEL 2</span><span class="ttl">まっすぐ マスター</span><p>hosei を あわせて、じぶんの ロボットを まっすぐ はしらせよう。</p></div>
+    <div class="mission"><span class="lv">LEVEL 3</span><span class="ttl">タイムアタック</span><p>speed と turn を くふうして、いちばん はやい タイムを ねらおう。コースアウトしたら やりなおし！</p></div>
+  </div>
+</section>
+
+<details>
+  <summary>せんせい むけ：ブロックと 計算</summary>
+  <div class="teacher">
+    <p>Setup で 3つの 変数を 決め、サーボに 送る 4つの パルスを 1回だけ 計算します。左サーボは S3、右サーボは S1。1500µs が 停止です。</p>
+<pre>speed = 400
+turn  = 100
+hosei = 75
+lf = round(1500 + speed × hosei ÷ 100)   # 左・速い
+ls = round(1500 + turn  × hosei ÷ 100)   # 左・遅い
+rf = 1500 − speed                         # 右・速い
+rs = 1500 − turn                          # 右・遅い
+
+くろ → S3 ← ls ,  S1 ← rf   （左へ）
+しろ → S3 ← lf ,  S1 ← rs   （右へ）</pre>
+    <p>シミュレーターの ロボットは、左サーボが 右より 約1.33倍 強い 設定です（hosei 75 で まっすぐ 走ります）。実機の くせは 1台ずつ 違うので、まっすぐテストで 合わせてください。センサーの 判定は「生データ（最後の項目）＜ white × 0.6」です。</p>
+  </div>
+</details>
+
+</div>
+
+<script>
+(function(){
+  const W=640,H=360, LINE=18, WB=30, SO=22, K=0.45, KUSE=1.33, DEAD=20, CTRL=0.02, TAU=0.15;
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const $=id=>document.getElementById(id);
+  const sp=$('speed'), tu=$('turn'), ho=$('hosei'), statusEl=$('status');
+
+  // ---- course ----
+  const P=[];
+  for(let x=180;x<460;x+=6)P.push([x,80]);
+  for(let a=-90;a<90;a+=4){const r=a*Math.PI/180;P.push([460+100*Math.cos(r),180+100*Math.sin(r)]);}
+  for(let x=460;x>180;x-=6){const u=(460-x)/280;let b=0;if(u>0.2&&u<0.8){const v=(u-0.2)/0.6;b=45*(1-Math.cos(2*Math.PI*v))/2;}P.push([x,280-b]);}
+  for(let a=90;a<270;a+=4){const r=a*Math.PI/180;P.push([180+100*Math.cos(r),180+100*Math.sin(r)]);}
+  const N=P.length;
+  function near(x,y){let best=1e9,bi=0;for(let i=0;i<N;i++){const a=P[i],b=P[(i+1)%N];const dx=b[0]-a[0],dy=b[1]-a[1];let t=((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy);t=Math.max(0,Math.min(1,t));const px=a[0]+t*dx-x,py=a[1]+t*dy-y;const d=px*px+py*py;if(d<best){best=d;bi=i;}}return {d:Math.sqrt(best),i:bi};}
+
+  // ---- state ----
+  const S={vl:0,vr:0,prog:0,rev:false,mode:'course',running:true,x:0,y:0,th:0,t:0,trail:[],off:0,ctl:0,cmdL:1500,cmdR:1500,black:false,prevIdx:0,half:false,lapT0:0,last:null,best:null,msg:'',msgType:''};
+  function pulses(){const s=+sp.value,t=+tu.value,h=+ho.value;return{lf:Math.round(1500+s*h/100),ls:Math.round(1500+t*h/100),rf:1500-s,rs:1500-t};}
+  function reset(){
+    if(S.mode==='course'){S.x=200;S.y=71;S.th=0;}else{S.x=50;S.y=180;S.th=0;}
+    S.t=0;S.trail=[];S.off=0;S.vl=0;S.vr=0;S.prog=0;S.rev=false;S.ctl=CTRL;S.prevIdx=0;S.half=false;S.lapT0=0;S.last=null;
+    setStatus(S.mode==='course'?'はしってるよ':'まっすぐ はしるか みてみよう','');
+  }
+  function setStatus(m,type){if(S.msg===m&&S.msgType===type)return;S.msg=m;S.msgType=type;statusEl.textContent=m;statusEl.className='status'+(type?' '+type:'');}
+  function stop(){S.running=false;$('play').textContent='スタート';$('play').setAttribute('aria-pressed','false');}
+  function play(){S.running=true;$('play').textContent='ストップ';$('play').setAttribute('aria-pressed','true');}
+
+  function dead(v){return Math.abs(v)<DEAD?0:v;}
+  function step(h){
+    S.ctl+=h;
+    if(S.ctl>=CTRL){
+      S.ctl-=CTRL;
+      const p=pulses();
+      if(S.mode==='course'){
+        const sx=S.x+SO*Math.cos(S.th),sy=S.y+SO*Math.sin(S.th);
+        const n=near(sx,sy);S.black=n.d<LINE/2;
+        S.cmdL=S.black?p.ls:p.lf;S.cmdR=S.black?p.rf:p.rs;
+        S.off=n.d>45?S.off+CTRL:0;
+        const c=near(S.x,S.y).i;
+        if(c>N*0.45&&c<N*0.55)S.half=true;
+        if(S.half&&S.prevIdx>N*0.85&&c<N*0.15){S.last=S.t-S.lapT0;S.best=S.best==null?S.last:Math.min(S.best,S.last);S.lapT0=S.t;S.half=false;}
+        let di=c-S.prevIdx;if(di>N/2)di-=N;if(di<-N/2)di+=N;S.prog=S.prog*0.99+di;if(S.prog<-8)S.rev=true;
+        S.prevIdx=c;
+      }else{S.black=false;S.cmdL=p.lf;S.cmdR=p.rf;}
+      S.trail.push([S.x,S.y]);if(S.trail.length>700)S.trail.shift();
+    }
+    const tl=dead(S.cmdL-1500)*K*KUSE, tr=dead(1500-S.cmdR)*K, a=h/TAU;
+    S.vl+=(tl-S.vl)*a;S.vr+=(tr-S.vr)*a;
+    const vl=S.vl, vr=S.vr, v=(vl+vr)/2;
+    S.th+=(vl-vr)/WB*h;
+    S.x+=v*Math.cos(S.th)*h;S.y+=v*Math.sin(S.th)*h;S.t+=h;
+  }
+  function checks(){
+    const s=+sp.value,t=+tu.value;
+    const out=S.x<-30||S.x>W+30||S.y<-30||S.y>H+30;
+    if(S.mode==='course'){
+      if(S.off>1.0||out){stop();setStatus('コースアウト！ speed を さげるか、turn を 小さく してみよう','warn');return;}
+      if(S.rev){stop();setStatus('ぎゃくむきに はしりだしたよ！ speed を さげるか、hosei を しらべよう','warn');return;}
+      if(t>=s){setStatus('turn が speed と おなじか 大きいよ。turn を 小さく しよう','warn');return;}
+      if(S.last!=null)setStatus('1しゅう '+S.last.toFixed(1)+' びょう！　いちばん はやい：'+S.best.toFixed(1)+' びょう','ok');
+      else setStatus('はしってるよ　（センサー：'+(S.black?'くろ → ひだりへ':'しろ → みぎへ')+'）','');
+    }else{
+      if(S.x>600||out){
+        stop();const dy=S.y-180;
+        if(Math.abs(dy)<25)setStatus('まっすぐ はしれた！ hosei は '+ho.value+' で OK','ok');
+        else if(dy>0)setStatus('みぎ（とけいまわり）に まがったよ → hosei を 5 さげてみよう','warn');
+        else setStatus('ひだり（はんとけいまわり）に まがったよ → hosei を 5 あげてみよう','warn');
+      }
+    }
+  }
+
+  // ---- drawing ----
+  function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  function draw(){
+    ctx.fillStyle='#FAFAF7';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#ECECE5';ctx.lineWidth=1;
+    for(let x=40;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=40;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.font='700 12px "Zen Maru Gothic", sans-serif';
+    if(S.mode==='course'){
+      ctx.strokeStyle='#151515';ctx.lineWidth=LINE;ctx.lineJoin='round';ctx.beginPath();
+      P.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.stroke();
+      ctx.fillStyle='#E03131';ctx.fillRect(177,66,5,28);
+      ctx.fillStyle='#5A5F64';ctx.fillText('スタート',152,58);
+    }else{
+      ctx.setLineDash([8,8]);ctx.strokeStyle='#AEB5BB';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(40,180);ctx.lineTo(600,180);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#5A5F64';ctx.fillText('まっすぐ なら この せんの うえ',60,170);
+      ctx.fillStyle='#2B8A3E';ctx.fillRect(600,140,4,80);ctx.fillText('ゴール',586,132);
+    }
+    if(S.trail.length>1){ctx.strokeStyle='rgba(232,89,12,.55)';ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();S.trail.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.lineTo(S.x,S.y);ctx.stroke();}
+    // robot
+    ctx.save();ctx.translate(S.x,S.y);ctx.rotate(S.th);
+    ctx.strokeStyle='#3D4B59';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(SO,0);ctx.stroke();
+    ctx.fillStyle='#111';rr(-11,-20,22,7,2);ctx.fill();rr(-11,13,22,7,2);ctx.fill();
+    ctx.fillStyle='#3D4B59';rr(-17,-14,34,28,6);ctx.fill();
+    ctx.fillStyle=S.running?'#7CFFB2':'#E9ECEF';rr(-6,-6,12,12,2);ctx.fill();
+    ctx.fillStyle='#FF3B3B';ctx.beginPath();ctx.arc(SO,0,4.5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#FFFFFF';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---- canvas sizing ----
+  function fit(){const r=cv.getBoundingClientRect();const d=window.devicePixelRatio||1;cv.width=Math.max(1,Math.round(r.width*d));cv.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);draw();}
+  new ResizeObserver(fit).observe(cv);
+
+  // ---- UI ----
+  function ui(){
+    $('speed-v').textContent=sp.value;$('turn-v').textContent=tu.value;$('hosei-v').textContent=ho.value;
+    $('now-speed').textContent=sp.value;$('now-turn').textContent=tu.value;$('now-hosei').textContent=ho.value;
+    const p=pulses();$('o-lf').textContent=p.lf;$('o-ls').textContent=p.ls;$('o-rf').textContent=p.rf;$('o-rs').textContent=p.rs;
+    const straight=S.mode==='straight';
+    $('o-ls').classList.toggle('dim',straight);$('o-rs').classList.toggle('dim',straight);
+  }
+  [sp,tu,ho].forEach(el=>el.addEventListener('input',()=>{ui();if(S.mode==='straight'){reset();play();}else if(!S.running&&S.msgType==='warn'){/* keep message */}}));
+  $('play').addEventListener('click',()=>{if(S.running)stop();else{if(S.msgType==='warn'&&(S.mode==='straight'||S.rev||S.off>1.0||S.x<-30||S.x>W+30||S.y<-30||S.y>H+30))reset();if(S.mode==='straight'&&S.x>600)reset();play();}});
+  $('reset').addEventListener('click',()=>{reset();play();});
+  function setMode(m){S.mode=m;$('m-course').setAttribute('aria-pressed',m==='course');$('m-straight').setAttribute('aria-pressed',m==='straight');S.best=null;reset();ui();play();}
+  $('m-course').addEventListener('click',()=>setMode('course'));
+  $('m-straight').addEventListener('click',()=>setMode('straight'));
+
+  // ---- loop ----
+  let lastTs=null;
+  function loop(ts){
+    if(lastTs==null)lastTs=ts;
+    let dt=Math.min(0.05,(ts-lastTs)/1000);lastTs=ts;
+    if(S.running){const h=0.005;while(dt>1e-6){const s=Math.min(h,dt);step(s);dt-=s;}checks();}
+    draw();requestAnimationFrame(loop);
+  }
+  reset();ui();
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){stop();setStatus('スタートを おすと はしるよ','');}
+  fit();requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
